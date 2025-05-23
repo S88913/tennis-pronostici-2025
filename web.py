@@ -1,3 +1,5 @@
+# ✅ FINAL VERSION: web.py con supporto pagina web + invio Telegram
+
 import os
 import pandas as pd
 import pickle
@@ -5,8 +7,22 @@ from flask import Flask, render_template_string
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from telegram import Bot
 
 app = Flask(__name__)
+
+# === CONFIGURA QUI I TUOI DATI TELEGRAM ===
+BOT_TOKEN = "7359337286:AAFmojWUP9eCKcDLNj5YFb0h_LjJuhjf5uE"
+CHAT_ID = "6146221712"
+
+
+def send_telegram_message(message):
+    try:
+        bot = Bot(token=BOT_TOKEN)
+        bot.send_message(chat_id=CHAT_ID, text=message)
+    except Exception as e:
+        print("Errore invio Telegram:", e)
+
 
 def train_model():
     df = pd.read_csv("atp_tennis.csv")
@@ -30,11 +46,13 @@ def train_model():
     with open("encoder.pkl", "wb") as f:
         pickle.dump(encoder, f)
 
+
 if not os.path.exists("model.pkl") or not os.path.exists("encoder.pkl"):
     train_model()
 
 model = pickle.load(open("model.pkl", "rb"))
 encoder = pickle.load(open("encoder.pkl", "rb"))
+
 
 @app.route("/")
 def home():
@@ -43,6 +61,8 @@ def home():
     latest_matches = df.tail(3)
 
     predictions = []
+    messages = []
+
     for _, row in latest_matches.iterrows():
         rank_diff = row["Rank_2"] - row["Rank_1"]
         surface_code = encoder.transform([row["Surface"]])[0]
@@ -53,6 +73,10 @@ def home():
             "player2": row["Player_2"],
             "winner": predicted_winner
         })
+        messages.append(f"🎾 {row['Player_1']} vs {row['Player_2']}\n👉 Vincente previsto: {predicted_winner}")
+
+    # Invia a Telegram una sola volta per visita
+    send_telegram_message("\n\n".join(messages))
 
     html = """
     <h2>🎾 Pronostici Tennis (ultimi 3 match)</h2>
@@ -64,5 +88,7 @@ def home():
     """
     return render_template_string(html, predictions=predictions)
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)

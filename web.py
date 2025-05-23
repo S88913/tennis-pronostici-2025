@@ -1,4 +1,4 @@
-# ✅ FINAL VERSION: web.py con supporto pagina web + invio Telegram
+# ✅ FINAL VERSION: web.py con supporto pagina web + invio Telegram (corretto async)
 
 import os
 import pandas as pd
@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from telegram import Bot
+import asyncio
 
 app = Flask(__name__)
 
@@ -19,7 +20,7 @@ CHAT_ID = "6146221712"
 def send_telegram_message(message):
     try:
         bot = Bot(token=BOT_TOKEN)
-        bot.send_message(chat_id=CHAT_ID, text=message)
+        asyncio.run(bot.send_message(chat_id=CHAT_ID, text=message))
     except Exception as e:
         print("Errore invio Telegram:", e)
 
